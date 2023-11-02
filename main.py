@@ -1,10 +1,11 @@
-import os
-import streamlit as st
+from urllib.parse import urljoin
+import base64
 import requests
 from bs4 import BeautifulSoup
 from hanziconv import HanziConv
-from weasyprint import HTML, CSS
-from urllib.parse import urljoin
+from xhtml2pdf import pisa
+import streamlit as st
+import io
 
 # 設定 Streamlit
 st.header('抓取 MBA 智庫內容，並轉成 PDF 檔案下載', divider ='rainbow')
@@ -53,29 +54,33 @@ if url and submit_button:
         # 確保所有圖片URL都是絕對的
         soup = BeautifulSoup(content, 'html.parser')
         for img in soup.find_all('img'):
-            img['src'] = urljoin(url, img['src'])
+            img_url = urljoin(url, img['src'])
+            response = requests.get(img_url)
+            img_data = base64.b64encode(response.content).decode('utf-8')
+            img['src'] = 'data:image/png;base64,' + img_data
 
-        content = str(soup)
+        # 在 HTML 開頭添加 Google Fonts 的 CSS
+        google_fonts_css = '<style>@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+TC&display=swap"); body { font-family: "Noto Sans TC"; }</style>'
+        content = google_fonts_css + str(soup)
 
         # 創建 PDF 文件的完整路徑
         pdf_path = soup.find('h1').get_text() + '.pdf'
 
         # 將 HTML 轉換為 PDF
-        HTML(string=content).write_pdf(pdf_path, stylesheets=[CSS(string='img { display: block; max-width: 100%; height: auto; }')])
+        pdf_file = io.BytesIO()
+        pisa.CreatePDF(io.BytesIO(content.encode()), pdf_file)
 
         # 檢查檔案是否存在
-        if os.path.exists(pdf_path):
+        if pdf_file.getbuffer().nbytes > 0:
             st.success('PDF 檔案已建立完成')
             # 提供下載連結
-            with open(pdf_path, "rb") as file:
-                btn = st.download_button(
-                    label="下載 PDF 檔吧！",
-                    data=file,
-                    file_name=pdf_path,
-                    mime='application/pdf',
-                )
-                if btn:
-                    st.button('清除並重新輸入網址', type = "primary")
+            btn = st.download_button(
+                label="下載 PDF 檔吧！",
+                data=pdf_file.getvalue(),
+                file_name=pdf_path,
+                mime='application/pdf',
+            )
+            if btn:
+                st.button('清除並重新輸入網址', type = "primary")
         else:
             st.error('PDF 檔案創建失敗')
-
