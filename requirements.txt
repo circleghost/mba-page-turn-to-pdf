@@ -1,5 +1,8 @@
-streamlit
+urllib3
+base64
 requests
 beautifulsoup4
 hanziconv
-weasyprint
+xhtml2pdf
+streamlit
+io
