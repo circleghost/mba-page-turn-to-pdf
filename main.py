@@ -4,6 +4,7 @@ import requests
 from bs4 import BeautifulSoup
 from hanziconv import HanziConv
 from xhtml2pdf import pisa
+from urllib.parse import urlparse, urlunparse
 import streamlit as st
 import io
 
@@ -18,7 +19,22 @@ url = st.text_input('↓↓↓↓↓↓')
 submit_button = st.button('送出')
 
 if url and submit_button:
+    parsed_url = urlparse(url)
+    if parsed_url.netloc != 'wiki.mbalib.com':
+        st.warning('這不是MBA智庫的網址喔！')
+    else:
+        # 檢查網址中是否帶有「zh-tw」
+        path_parts = parsed_url.path.split('/')
+        if 'zh-tw' not in path_parts:
+            path_parts.insert(1, 'zh-tw')
+            parsed_url = parsed_url._replace(path='/' + '/'.join(path_parts))
+        # 將網址接到google快取網址後
+        url = 'https://webcache.googleusercontent.com/search?q=cache:' + urlunparse(parsed_url)
+
     with st.spinner('處理中...'):
+        # 抓取網頁內容
+        response = requests.get(url)
+
         # 抓取網頁內容
         response = requests.get(url)
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -48,16 +64,18 @@ if url and submit_button:
         # 移除<!-- Tidy found serious XHTML errors -->之後的內容
         content_div = str(content_div).split('<!-- Tidy found serious XHTML errors -->')[0]
 
-        # 簡體轉繁體
-        content = HanziConv.toTraditional(content_div)
-
         # 確保所有圖片URL都是絕對的
-        soup = BeautifulSoup(content, 'html.parser')
+        soup = BeautifulSoup(content_div, 'html.parser')
         for img in soup.find_all('img'):
             img_url = urljoin(url, img['src'])
             response = requests.get(img_url)
-            img_data = base64.b64encode(response.content).decode('utf-8')
-            img['src'] = 'data:image/png;base64,' + img_data
+            # 檢查請求是否成功
+            if response.status_code == 200:
+                img_data = base64.b64encode(response.content).decode('utf-8')
+                img['src'] = 'data:image/png;base64,' + img_data
+                # 檢查圖片寬度
+                if not img.get('width') or img.get('width') == '0':
+                    img['width'] = '1'
 
         # 在 HTML 開頭添加 @font-face 規則
         font_face_css = """
