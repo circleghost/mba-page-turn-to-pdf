@@ -82,7 +82,7 @@ if url and submit_button:
         <style>
         @font-face {
             font-family: 'Noto Sans TC';
-            src: url('https://raw.githubusercontent.com/circleghost/mba-page-turn-to-pdf/master/path/to/font.woff2') format('woff2');
+            src: url('https://raw.githubusercontent.com/circleghost/mba-page-turn-to-pdf/master/font.woff2') format('woff2');
             font-weight: normal;
             font-style: normal;
         }
