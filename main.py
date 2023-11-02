@@ -59,9 +59,21 @@ if url and submit_button:
             img_data = base64.b64encode(response.content).decode('utf-8')
             img['src'] = 'data:image/png;base64,' + img_data
 
-        # 在 HTML 開頭添加 Google Fonts 的 CSS
-        google_fonts_css = '<style>@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+TC&display=swap"); body { font-family: "Noto Sans TC"; }</style>'
-        content = google_fonts_css + str(soup)
+        # 在 HTML 開頭添加 @font-face 規則
+        font_face_css = """
+        <style>
+        @font-face {
+            font-family: 'Noto Sans TC';
+            src: url('https://raw.githubusercontent.com/circleghost/mba-page-turn-to-pdf/master/path/to/font.woff2') format('woff2');
+            font-weight: normal;
+            font-style: normal;
+        }
+        body {
+            font-family: 'Noto Sans TC';
+        }
+        </style>
+        """
+        content = font_face_css + str(soup)
 
         # 創建 PDF 文件的完整路徑
         pdf_path = soup.find('h1').get_text() + '.pdf'
