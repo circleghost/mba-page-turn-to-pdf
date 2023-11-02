@@ -1,8 +1,5 @@
-urllib3
-base64
+streamlit
 requests
 beautifulsoup4
 hanziconv
 xhtml2pdf
-streamlit
-io
